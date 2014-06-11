@@ -8,6 +8,7 @@ import (
 
 var completed int = 0
 var ok int = 0
+var start_time time.Time
 
 func do_connect(url string, routines int, n int){
   for i := 0; i < n; i++ {
@@ -70,10 +71,14 @@ func get_number() int{
   var number int
   fmt.Println("Enter connections per routine: ")
   _, err := fmt.Scanln(&number)
+  handle_error(err)
+  return number
+}
+
+func handle_error(err error){
   if err != nil {
     fmt.Println(err)
   }
-  return number
 }
 
 func main() {
@@ -83,7 +88,7 @@ func main() {
   number := get_number()
 
   fmt.Println("Running...")
-  var start_time = time.Now()
+  start_time = time.Now()
   for i := 0; i < routines; i++ {
     go do_connect(url, routines, number)
   }
