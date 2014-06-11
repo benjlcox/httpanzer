@@ -8,7 +8,6 @@ import (
 
 var completed int = 0
 var ok int = 0
-var start_time = time.Now()
 
 func do_connect(url string, routines int, n int){
   for i := 0; i < n; i++ {
@@ -84,6 +83,7 @@ func main() {
   number := get_number()
 
   fmt.Println("Running...")
+  var start_time = time.Now()
   for i := 0; i < routines; i++ {
     go do_connect(url, routines, number)
   }
