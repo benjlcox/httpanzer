@@ -3,26 +3,26 @@ package main
 import (
   "fmt"
   "net/http"
-  "os"
   )
 
 var completed int = 0
+var ok int = 0
 
 func do_connect(url string, n int){
   for i := 0; i < n; i++ {
     response, err := http.Get(url)
     if err != nil {
       fmt.Println(err)
-      os.Exit(1)
     } else {
       defer response.Body.Close()
       status := string(response.Status)
       if err != nil {
         fmt.Println(err)
-        os.Exit(1)
       }
       if status != "200 OK" {
         fmt.Println(status)
+      } else {
+        ok = ok + 1
       }
     }
   }
@@ -32,6 +32,7 @@ func do_connect(url string, n int){
   fmt.Println("Completed Routine: ", completed)
   if completed == 10 {
     fmt.Println("ALL DONE :D")
+    fmt.Println("Number of 200 OK: ", ok)
   }
 }
 
