@@ -3,10 +3,12 @@ package main
 import (
   "fmt"
   "net/http"
+  "time"
   )
 
 var completed int = 0
 var ok int = 0
+var start_time = time.Now()
 
 func do_connect(url string, routines int, n int){
   for i := 0; i < n; i++ {
@@ -31,8 +33,12 @@ func do_connect(url string, routines int, n int){
 
   fmt.Println("Completed Routine: ", completed)
   if completed == routines {
-    fmt.Println("ALL DONE :D")
+    elapsed := time.Since(start_time)
+    fmt.Println("")
+    fmt.Println("========================")
+    fmt.Println("")
     fmt.Println("Number of 200 OK: ", ok)
+    fmt.Println("Run time: ", elapsed)
   }
 }
 
@@ -53,7 +59,7 @@ func get_url() string{
 
 func get_routines() int{
   var routines int
-  fmt.Println("Enter number of routines (5 reccomended): ")
+  fmt.Println("Enter number of routines: ")
   _, err := fmt.Scanln(&routines)
   if err != nil {
     fmt.Println(err)
@@ -77,6 +83,7 @@ func main() {
   routines := get_routines()
   number := get_number()
 
+  fmt.Println("Running...")
   for i := 0; i < routines; i++ {
     go do_connect(url, routines, number)
   }
