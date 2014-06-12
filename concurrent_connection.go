@@ -61,9 +61,7 @@ func get_routines() int{
   var routines int
   fmt.Println("Enter number of routines: ")
   _, err := fmt.Scanln(&routines)
-  if err != nil {
-    fmt.Println(err)
-  }
+  handle_error(err)
   return routines
 }
 
