@@ -4,7 +4,7 @@ import (
   "fmt"
   "net/http"
   "time"
-  )
+)
 
 var completed int = 0
 var ok int = 0
@@ -145,8 +145,5 @@ func main() {
   fmt.Println("Shortest Response: ", shortest, "ms")
   fmt.Println("Longest Response: ", longest, "ms")
   fmt.Println("Average Response: ", average_time(all), "ms")
-
-  var input string
-  fmt.Scanln(&input)
 }
 
