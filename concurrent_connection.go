@@ -4,15 +4,15 @@ import (
   "fmt"
   "net/http"
   "time"
+  "strings"
 )
 
 var completed int = 0
-var ok int = 0
 var start_time time.Time
+var response_codes = make(map[string]int)
 
 
-func do_connect(url string, routines int, n int, time_tracker chan int64){
-
+func do_connect(url string, n int, time_tracker chan int64){
   for i := 0; i < n; i++ {
     routine_time := time.Now().UnixNano()
     response, err := http.Get(url)
@@ -20,27 +20,19 @@ func do_connect(url string, routines int, n int, time_tracker chan int64){
       fmt.Println(err)
     } else {
       defer response.Body.Close()
-      status := string(response.Status)
       time_tracker <- (time.Now().UnixNano() - routine_time) / 1000000
-      if status != "200 OK" {
-        fmt.Println(status)
+      status := string(response.Status)
+      if response_codes[status] == 0{
+        response_codes[status] = 1
       } else {
-        ok++
+        response_codes[status] = response_codes[status] + 1
       }
     }
   }
 
   completed++
-
   fmt.Println("Completed Routine: ", completed)
-  if completed == routines {
-    elapsed := time.Since(start_time)
-    fmt.Println("")
-    fmt.Println("========================")
-    fmt.Println("")
-    fmt.Println("Number of 200 OK: ", ok)
-    fmt.Println("Run time: ", elapsed)
-  }
+
 }
 
 func get_url() string{
@@ -132,15 +124,28 @@ func main() {
   total_calls := routines * number
 
   fmt.Println("Running...")
+
   go gather_times(total_calls, time_tracker, final_times)
+
   start_time = time.Now()
+
   for i := 0; i < routines; i++ {
-    go do_connect(url, routines, number, time_tracker)
+    go do_connect(url, number, time_tracker)
   }
 
   all_times := <- final_times
   bubble_sort(all_times)
   shortest, longest, all := analyze_times(all_times)
+  elapsed := time.Since(start_time)
+
+  fmt.Println("")
+  fmt.Println("========================")
+  fmt.Println("")
+  fmt.Println("Run time: ", elapsed)
+  fmt.Println("Response Codes:")
+  for key,value := range response_codes {
+    fmt.Println("  *", strings.TrimSpace(key), "-> ", value, "of", total_calls)
+  }
 
   fmt.Println("Shortest Response: ", shortest, "ms")
   fmt.Println("Longest Response: ", longest, "ms")
