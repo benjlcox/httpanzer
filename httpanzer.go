@@ -13,16 +13,16 @@ var completed int = 0
 var start_time time.Time
 var response_codes = make(map[string]int)
 var num_errors int = 0
-var error_msgs = make(map[error]int)
+var error_msgs = make(map[string]int)
 
 func do_connect(url string, n int, time_tracker chan int){
   for i := 0; i < n; i++ {
     routine_time := time.Now().UnixNano()
     response, err := http.Get(url)
     if err != nil {
-      fmt.Println(err)
       time_tracker <- int((time.Now().UnixNano() - routine_time) / 1000000)
       track_responses("ERROR")
+      track_errors(err)
     } else {
       defer response.Body.Close()
       time_tracker <- int((time.Now().UnixNano() - routine_time) / 1000000)
@@ -40,6 +40,16 @@ func track_responses(status string){
     response_codes[status] = 1
   } else {
     response_codes[status] = response_codes[status] + 1
+  }
+}
+
+func track_errors(err error){
+  str_error := err.Error()
+  num_errors = num_errors + 1
+  if error_msgs[str_error] == 0 {
+    error_msgs[str_error] = 1
+  } else {
+    error_msgs[str_error] = error_msgs[str_error] + 1
   }
 }
 
@@ -186,9 +196,9 @@ func main() {
   reset := ansi.ColorCode("reset")
 
   fmt.Println("")
+  fmt.Println("")
   fmt.Println("========================")
   fmt.Println("")
-  fmt.Println("Run time: ", elapsed)
   fmt.Println("Response Codes:")
 
   //Print response codes
@@ -207,9 +217,18 @@ func main() {
   }
 
   //Print times
+  fmt.Println("Total Run Time: ", elapsed)
   fmt.Println("Shortest Response: ", shortest, "ms")
   fmt.Println("Longest Response: ", longest, "ms")
   fmt.Println("Average Response: ", average, "ms")
   fmt.Println("Standard Deviation: ", stddev)
+
+  if num_errors > 0 {
+    fmt.Println("")
+    fmt.Println(red,"----- Error Report -----", reset)
+    for key,value := range error_msgs {
+      fmt.Println(key, " -> occured", value, "times")
+    }
+  }
 }
 
