@@ -12,7 +12,8 @@ import (
 var completed int = 0
 var start_time time.Time
 var response_codes = make(map[string]int)
-
+var num_errors int = 0
+var error_msgs = make(map[error]int)
 
 func do_connect(url string, n int, time_tracker chan int){
   for i := 0; i < n; i++ {
@@ -20,21 +21,26 @@ func do_connect(url string, n int, time_tracker chan int){
     response, err := http.Get(url)
     if err != nil {
       fmt.Println(err)
+      time_tracker <- int((time.Now().UnixNano() - routine_time) / 1000000)
+      track_responses("ERROR")
     } else {
       defer response.Body.Close()
       time_tracker <- int((time.Now().UnixNano() - routine_time) / 1000000)
-      status := string(response.Status)
-      if response_codes[status] == 0{
-        response_codes[status] = 1
-      } else {
-        response_codes[status] = response_codes[status] + 1
-      }
+      track_responses(string(response.Status))
     }
   }
 
   completed++
   fmt.Print("+")
 
+}
+
+func track_responses(status string){
+  if response_codes[status] == 0{
+    response_codes[status] = 1
+  } else {
+    response_codes[status] = response_codes[status] + 1
+  }
 }
 
 func get_url() string{
@@ -79,12 +85,12 @@ func handle_error(err error){
   }
 }
 
-func gather_times(number_calls int, time_tracker chan int, final_times chan []int){
+func gather_times(number int, time_tracker chan int, final_times chan []int){
   times := make([]int, 0)
   for {
     received_time := <- time_tracker
     times = append(times, received_time)
-    if len(times) == number_calls{
+    if len(times) == number{
       final_times <- times
     }
   }
@@ -193,6 +199,8 @@ func main() {
       fmt.Println("  *", yellow, strings.TrimSpace(key), reset, "-> ", value, "of", number)
     } else if (strings.HasPrefix(key, "5")){
       fmt.Println("  *", red, strings.TrimSpace(key), reset, "-> ", value, "of", number)
+    }else if (strings.HasPrefix(key, "E")){
+      fmt.Println("  *", red, key, reset, "-> ", value, "of", number)
     }else{
     fmt.Println("  *", strings.TrimSpace(key), "-> ", value, "of", number)
     }
