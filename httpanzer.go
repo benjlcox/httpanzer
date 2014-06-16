@@ -14,7 +14,7 @@ var start_time time.Time
 var response_codes = make(map[string]int)
 
 
-func do_connect(url string, n int, time_tracker chan int64){
+func do_connect(url string, n int, time_tracker chan int){
   for i := 0; i < n; i++ {
     routine_time := time.Now().UnixNano()
     response, err := http.Get(url)
@@ -22,7 +22,7 @@ func do_connect(url string, n int, time_tracker chan int64){
       fmt.Println(err)
     } else {
       defer response.Body.Close()
-      time_tracker <- (time.Now().UnixNano() - routine_time) / 1000000
+      time_tracker <- int((time.Now().UnixNano() - routine_time) / 1000000)
       status := string(response.Status)
       if response_codes[status] == 0{
         response_codes[status] = 1
@@ -59,7 +59,7 @@ func get_url() string{
 
 func get_routines() int{
   var routines int
-  fmt.Println("Enter number of routines: ")
+  fmt.Println("Enter number of concurrent routines (5-7 recommended): ")
   _, err := fmt.Scanln(&routines)
   handle_error(err)
   return routines
@@ -67,7 +67,7 @@ func get_routines() int{
 
 func get_number() int{
   var number int
-  fmt.Println("Enter connections per routine: ")
+  fmt.Println("Enter total number of connections to make: ")
   _, err := fmt.Scanln(&number)
   handle_error(err)
   return number
@@ -79,8 +79,8 @@ func handle_error(err error){
   }
 }
 
-func gather_times(number_calls int, time_tracker chan int64, final_times chan []int64){
-  times := make([]int64, 0)
+func gather_times(number_calls int, time_tracker chan int, final_times chan []int){
+  times := make([]int, 0)
   for {
     received_time := <- time_tracker
     times = append(times, received_time)
@@ -90,7 +90,7 @@ func gather_times(number_calls int, time_tracker chan int64, final_times chan []
   }
 }
 
-func bubble_sort(slice []int64){
+func bubble_sort(slice []int){
   for sliceCount := len(slice) -1; ; sliceCount-- {
     changed := false
     for i := 0; i < sliceCount; i++ {
@@ -105,17 +105,17 @@ func bubble_sort(slice []int64){
   }
 }
 
-func average_time(slice []int64) int64 {
-  var sum int64 = 0
+func average_time(slice []int) int {
+  var sum int = 0
   for _, element := range slice{
     sum += element
   }
-  return sum / int64((len(slice) - 1))
+  return sum / int((len(slice) - 1))
 }
 
-func standard_deviation(slice []int64, average int64) (float64) {
+func standard_deviation(slice []int, average int) (float64) {
   length := len(slice) - 1
-  var sum int64
+  var sum int
   var variance float64
   var ssd float64
 
@@ -129,7 +129,7 @@ func standard_deviation(slice []int64, average int64) (float64) {
   return ssd
 }
 
-func analyze_times(time_slice []int64) (int64, int64, int64, float64){
+func analyze_times(time_slice []int) (int, int, int, float64){
   short := time_slice[0]
   long := time_slice[len(time_slice)-1]
   average :=  average_time(time_slice)
@@ -139,29 +139,41 @@ func analyze_times(time_slice []int64) (int64, int64, int64, float64){
 }
 
 func main() {
-  time_tracker := make(chan int64)
-  final_times := make(chan []int64)
+  // Channels
+  time_tracker := make(chan int)
+  final_times := make(chan []int)
 
+  //User input
   url := get_url()
-  routines := get_routines()
   number := get_number()
-  total_calls := routines * number
+  routines := get_routines()
+  per_routine := number / routines
+  remainder := number % routines
 
   fmt.Println("Running...")
 
-  go gather_times(total_calls, time_tracker, final_times)
+  //Timer routines
+  go gather_times(number, time_tracker, final_times)
 
   start_time = time.Now()
 
+  //Connection routines
   for i := 0; i < routines; i++ {
-    go do_connect(url, number, time_tracker)
+    go do_connect(url, per_routine, time_tracker)
+  }
+  //Leftovers
+  if !(remainder == 0){
+    go do_connect(url, remainder, time_tracker)
   }
 
+  // Analyzing times
   all_times := <- final_times
+  //sort.Ints(all_times)
   bubble_sort(all_times)
   shortest, longest, average, stddev := analyze_times(all_times)
   elapsed := time.Since(start_time)
 
+  //Declare colours for printing
   green := ansi.ColorCode("green")
   yellow := ansi.ColorCode("yellow")
   red := ansi.ColorCode("red")
@@ -172,18 +184,21 @@ func main() {
   fmt.Println("")
   fmt.Println("Run time: ", elapsed)
   fmt.Println("Response Codes:")
+
+  //Print response codes
   for key,value := range response_codes {
     if (strings.HasPrefix(key, "2")){
-      fmt.Println("  *", green, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+      fmt.Println("  *", green, strings.TrimSpace(key), reset, "-> ", value, "of", number)
     } else if (strings.HasPrefix(key, "3") || strings.HasPrefix(key, "4")){
-      fmt.Println("  *", yellow, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+      fmt.Println("  *", yellow, strings.TrimSpace(key), reset, "-> ", value, "of", number)
     } else if (strings.HasPrefix(key, "5")){
-      fmt.Println("  *", red, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+      fmt.Println("  *", red, strings.TrimSpace(key), reset, "-> ", value, "of", number)
     }else{
-    fmt.Println("  *", strings.TrimSpace(key), "-> ", value, "of", total_calls)
+    fmt.Println("  *", strings.TrimSpace(key), "-> ", value, "of", number)
     }
   }
 
+  //Print times
   fmt.Println("Shortest Response: ", shortest, "ms")
   fmt.Println("Longest Response: ", longest, "ms")
   fmt.Println("Average Response: ", average, "ms")
