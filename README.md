@@ -1,4 +1,4 @@
-concurrent_connection
+httpanzer
 =====================
 
-Script to concurrently connect to a url n number of times and print response status
+Script to concurrently connect to a url n number of times and analyze performance and outcomes
