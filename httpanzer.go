@@ -6,6 +6,7 @@ import (
   "time"
   "strings"
   "math"
+  "github.com/ansi"
 )
 
 var completed int = 0
@@ -37,7 +38,7 @@ func do_connect(url string, n int, time_tracker chan int64){
 }
 
 func get_url() string{
-  test_url := "http://benify.myshopify.com/collections/all/products.json?limit=250"
+  test_url := "http://random-responder.herokuapp.com/random"
 
   var url string
   fmt.Println("Enter URL (http://host.com/path):")
@@ -161,13 +162,26 @@ func main() {
   shortest, longest, average, stddev := analyze_times(all_times)
   elapsed := time.Since(start_time)
 
+  green := ansi.ColorCode("green")
+  yellow := ansi.ColorCode("yellow")
+  red := ansi.ColorCode("red")
+  reset := ansi.ColorCode("reset")
+
   fmt.Println("")
   fmt.Println("========================")
   fmt.Println("")
   fmt.Println("Run time: ", elapsed)
   fmt.Println("Response Codes:")
   for key,value := range response_codes {
+    if (strings.HasPrefix(key, "2")){
+      fmt.Println("  *", green, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+    } else if (strings.HasPrefix(key, "3") || strings.HasPrefix(key, "4")){
+      fmt.Println("  *", yellow, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+    } else if (strings.HasPrefix(key, "5")){
+      fmt.Println("  *", red, strings.TrimSpace(key), reset, "-> ", value, "of", total_calls)
+    }else{
     fmt.Println("  *", strings.TrimSpace(key), "-> ", value, "of", total_calls)
+    }
   }
 
   fmt.Println("Shortest Response: ", shortest, "ms")
