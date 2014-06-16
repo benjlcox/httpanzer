@@ -5,6 +5,7 @@ import (
   "net/http"
   "time"
   "strings"
+  "math"
 )
 
 var completed int = 0
@@ -31,7 +32,7 @@ func do_connect(url string, n int, time_tracker chan int64){
   }
 
   completed++
-  fmt.Println("Completed Routine: ", completed)
+  fmt.Print("+")
 
 }
 
@@ -39,13 +40,18 @@ func get_url() string{
   test_url := "http://benify.myshopify.com/collections/all/products.json?limit=250"
 
   var url string
-  fmt.Println("Enter URL:")
+  fmt.Println("Enter URL (http://host.com/path):")
   _, err := fmt.Scanln(&url)
   if err != nil && err.Error() != "unexpected newline" {
     fmt.Println(err)
   }
   if url == ""{
     url = test_url
+  }
+  if !strings.HasPrefix(url, "http://"){
+    if !strings.HasPrefix(url, "https://"){
+      url = "http://" + url
+    }
   }
   return url
 }
@@ -100,18 +106,35 @@ func bubble_sort(slice []int64){
 
 func average_time(slice []int64) int64 {
   var sum int64 = 0
-  for _,element := range slice{
+  for _, element := range slice{
     sum += element
   }
   return sum / int64((len(slice) - 1))
 }
 
-func analyze_times(time_slice []int64) (int64, int64, []int64){
+func standard_deviation(slice []int64, average int64) (float64) {
+  length := len(slice) - 1
+  var sum int64
+  var variance float64
+  var ssd float64
+
+  for _, element := range slice{
+    delta := element - average
+    sum += delta * delta
+  }
+  variance = float64(sum) / float64(length)
+  ssd = math.Sqrt(variance)
+
+  return ssd
+}
+
+func analyze_times(time_slice []int64) (int64, int64, int64, float64){
   short := time_slice[0]
   long := time_slice[len(time_slice)-1]
-  all := time_slice
+  average :=  average_time(time_slice)
+  stddev := standard_deviation(time_slice, average)
 
-  return short, long, all
+  return short, long, average, stddev
 }
 
 func main() {
@@ -135,7 +158,7 @@ func main() {
 
   all_times := <- final_times
   bubble_sort(all_times)
-  shortest, longest, all := analyze_times(all_times)
+  shortest, longest, average, stddev := analyze_times(all_times)
   elapsed := time.Since(start_time)
 
   fmt.Println("")
@@ -149,6 +172,7 @@ func main() {
 
   fmt.Println("Shortest Response: ", shortest, "ms")
   fmt.Println("Longest Response: ", longest, "ms")
-  fmt.Println("Average Response: ", average_time(all), "ms")
+  fmt.Println("Average Response: ", average, "ms")
+  fmt.Println("Standard Deviation: ", stddev)
 }
 
