@@ -6,7 +6,7 @@ import (
   "time"
   "strings"
   "math"
-  "github.com/ansi"
+  "github.com/mgutz/ansi"
 )
 
 var completed int = 0
